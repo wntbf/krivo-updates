@@ -1,0 +1,104 @@
+name: Publish krivo update
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version, e.g. 0.9.10 (leave empty for latest private release)'
+        required: false
+        type: string
+  schedule:
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-krivo-stable
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch verified installer from private build release
+        shell: bash
+        env:
+          SOURCE_TOKEN: ${{ secrets.KRIVO_SOURCE_TOKEN }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SOURCE_TOKEN" ]]; then
+            echo 'Missing KRIVO_SOURCE_TOKEN: configure a read-only fine-grained token for flekideveloper/personal-hub-android in Actions secrets.' >&2
+            exit 1
+          fi
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            tag="krivo-v${REQUESTED_VERSION}"
+          else
+            tag="$(GH_TOKEN="$SOURCE_TOKEN" gh release view --repo flekideveloper/personal-hub-android --json tagName --jq '.tagName')"
+          fi
+          if ! [[ "$tag" =~ ^krivo-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unexpected release tag: $tag" >&2
+            exit 1
+          fi
+          version="${tag#krivo-v}"
+          echo "KRIVO_TAG=$tag" >> "$GITHUB_ENV"
+          echo "KRIVO_VERSION=$version" >> "$GITHUB_ENV"
+
+          python - "$version" <<'PY'
+          import json, pathlib, sys
+          from itertools import zip_longest
+          previous=json.loads(pathlib.Path('latest.json').read_text()).get('version')
+          wanted=tuple(map(int,sys.argv[1].split('.')))
+          if previous and wanted < tuple(map(int,previous.split('.'))):
+              raise SystemExit(f'Refusing downgrade from {previous} to {sys.argv[1]}')
+          PY
+
+          mkdir -p dist
+          GH_TOKEN="$SOURCE_TOKEN" gh release download "$tag" \
+            --repo flekideveloper/personal-hub-android \
+            --pattern "krivo-setup-${version}.exe" --dir dist
+          test -s "dist/krivo-setup-${version}.exe"
+          echo 'KRIVO_SHA256='$(sha256sum "dist/krivo-setup-${version}.exe" | cut -d' ' -f1) >> "$GITHUB_ENV"
+
+      - name: Publish public Windows release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asset="dist/krivo-setup-${KRIVO_VERSION}.exe"
+          if gh release view "$KRIVO_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$KRIVO_TAG" "$asset" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$KRIVO_TAG" "$asset" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "krivo v${KRIVO_VERSION}" \
+              --notes "Official Windows installer for krivo v${KRIVO_VERSION}."
+          fi
+
+      - name: Publish update manifest after installer release succeeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, pathlib
+          version=os.environ['KRIVO_VERSION']
+          tag=os.environ['KRIVO_TAG']
+          digest=os.environ['KRIVO_SHA256']
+          url=f"https://github.com/wntbf/krivo-updates/releases/download/{tag}/krivo-setup-{version}.exe"
+          pathlib.Path("latest.json").write_text(
+            json.dumps({"schema_version":1,"channel":"stable","version":version,"url":url,"sha256":digest},indent=2)+"\n",
+            encoding="utf-8"
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish krivo ${KRIVO_VERSION} update manifest"
+            git push
+          fi
