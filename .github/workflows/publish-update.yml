@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/publish-update.yml'
+      - 'README.md'
   workflow_dispatch:
     inputs:
       version:
