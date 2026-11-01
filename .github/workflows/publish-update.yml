@@ -39,13 +39,13 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "$SOURCE_TOKEN" ]]; then
-            echo 'Missing KRIVO_SOURCE_TOKEN: configure a read-only fine-grained token for flekideveloper/personal-hub-android in Actions secrets.' >&2
+            echo 'Missing KRIVO_SOURCE_TOKEN: configure a read-only fine-grained token for flekusi4ek/personal-hub-android in Actions secrets.' >&2
             exit 1
           fi
           if [[ -n "$REQUESTED_VERSION" ]]; then
             tag="krivo-v${REQUESTED_VERSION}"
           else
-            tag="$(GH_TOKEN="$SOURCE_TOKEN" gh release view --repo flekideveloper/personal-hub-android --json tagName --jq '.tagName')"
+            tag="$(GH_TOKEN="$SOURCE_TOKEN" gh release view --repo flekusi4ek/personal-hub-android --json tagName --jq '.tagName')"
           fi
           if ! [[ "$tag" =~ ^krivo-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Unexpected release tag: $tag" >&2
@@ -66,7 +66,7 @@ jobs:
 
           mkdir -p dist
           GH_TOKEN="$SOURCE_TOKEN" gh release download "$tag" \
-            --repo flekideveloper/personal-hub-android \
+            --repo flekusi4ek/personal-hub-android \
             --pattern "krivo-setup-${version}.exe" --dir dist
           test -s "dist/krivo-setup-${version}.exe"
           echo 'KRIVO_SHA256='$(sha256sum "dist/krivo-setup-${version}.exe" | cut -d' ' -f1) >> "$GITHUB_ENV"
