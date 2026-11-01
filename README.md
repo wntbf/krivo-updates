@@ -21,3 +21,6 @@ The built-in `GITHUB_TOKEN` is used for publishing to this public repository, so
 ## Security
 
 The Windows app checks that manifest and installer URLs use HTTPS and validates the downloaded setup file against its SHA-256 before asking the user to install. SHA-256 guards against download corruption but does **not** replace code signing or protect against compromised repository permissions. Releases should eventually be signed with a trusted Windows code-signing certificate. No GitHub user token is embedded into krivo.
+
+
+Update channel: publish krivo v0.9.15 after verified Windows build.
