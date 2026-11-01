@@ -1,3 +1,4 @@
+# krivo v0.9.13 update release publish trigger (workflow uses the latest approved private build)
 name: Publish krivo update
 
 on:
