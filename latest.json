@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "channel": "stable",
-  "version": "0.9.24",
-  "url": "https://github.com/wntbf/krivo-updates/releases/download/krivo-v0.9.24/krivo-setup-0.9.24.exe",
-  "sha256": "bacc1d1b55fecf6882c369397bf0a7ed9a6aee806d94abc830f64b2000d9ad5d"
+  "version": "0.9.25",
+  "url": "https://github.com/wntbf/krivo-updates/releases/download/krivo-v0.9.25/krivo-setup-0.9.25.exe",
+  "sha256": "711e74b99a7aa3f950de470aa269863e92c61d9f15dbeb5233ed92f38fd81510"
 }
