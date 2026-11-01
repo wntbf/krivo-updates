@@ -1,3 +1,4 @@
+# krivo v0.9.21 contextual dialogue channel publication
 # Publish krivo neyro v0.9.14 after verified private Windows release
 # krivo v0.9.13 update release publish trigger (workflow uses the latest approved private build)
 name: Publish krivo update
