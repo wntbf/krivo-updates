@@ -16,7 +16,7 @@ on:
         required: false
         type: string
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '*/15 * * * *'
 
 permissions:
   contents: write
@@ -33,6 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch verified installer from private build release
+        id: source
         shell: bash
         env:
           SOURCE_TOKEN: ${{ secrets.KRIVO_SOURCE_TOKEN }}
@@ -65,6 +66,17 @@ jobs:
               raise SystemExit(f'Refusing downgrade from {previous} to {sys.argv[1]}')
           PY
 
+          # Only transfer the installer when the release really changed. This
+          # keeps frequent checks cheap and avoids publishing the same 165 MB
+          # binary on every scheduled invocation.
+          installed="$(python -c 'import json;print(json.load(open("latest.json")).get("version",""))')"
+          if [[ "$installed" == "$version" ]]; then
+            echo "needs_publish=false" >> "$GITHUB_OUTPUT"
+            echo "Public update channel is already current at $version"
+            exit 0
+          fi
+          echo "needs_publish=true" >> "$GITHUB_OUTPUT"
+
           mkdir -p dist
           GH_TOKEN="$SOURCE_TOKEN" gh release download "$tag" \
             --repo flekusi4ek/personal-hub-android \
@@ -73,6 +85,7 @@ jobs:
           echo 'KRIVO_SHA256='$(sha256sum "dist/krivo-setup-${version}.exe" | cut -d' ' -f1) >> "$GITHUB_ENV"
 
       - name: Publish public Windows release
+        if: steps.source.outputs.needs_publish == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -89,6 +102,7 @@ jobs:
           fi
 
       - name: Publish update manifest after installer release succeeds
+        if: steps.source.outputs.needs_publish == 'true'
         shell: bash
         run: |
           set -euo pipefail
