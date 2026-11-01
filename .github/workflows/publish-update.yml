@@ -107,3 +107,5 @@ jobs:
             git commit -m "Publish krivo ${KRIVO_VERSION} update manifest"
             git push
           fi
+
+# Trigger refresh for krivo v0.9.12
