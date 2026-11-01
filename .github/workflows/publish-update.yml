@@ -136,3 +136,5 @@ jobs:
 # Trigger krivo release sync 0.9.20
 
 # Publish verified krivo v0.9.22 (project library and 4K safe export)
+
+# Sync krivo 0.9.25 media double click after verified private build publication.
