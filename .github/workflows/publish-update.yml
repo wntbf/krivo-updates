@@ -111,3 +111,5 @@ jobs:
           fi
 
 # Trigger refresh for krivo v0.9.12
+
+# Publish tested krivo neyro v0.9.16 (offline video frame inspection)
